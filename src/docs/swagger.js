@@ -1,3 +1,4 @@
+// File: src/docs/swagger.js
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi    = require('swagger-ui-express');
 const config       = require('../config');
@@ -6,8 +7,8 @@ const options = {
     definition: {
         openapi: '3.0.3',
         info: {
-            title: config.appName,
-            version: config.version,
+            title:       config.appName,
+            version:     config.version,
             description: 'REST API untuk capstone project Web Advanced Development.',
         },
         servers: [{ url: `http://localhost:${config.port}/api/v1`, description: 'Local Dev' }],
@@ -17,11 +18,11 @@ const options = {
                     type: 'object',
                     required: ['title'],
                     properties: {
-                        title: { type: 'string', minLength: 1, maxLength: 200, example: 'Belajar Joi Validation' },
+                        title:       { type: 'string', minLength: 1, maxLength: 200, example: 'Belajar Joi Validation' },
                         description: { type: 'string', maxLength: 1000, example: 'Mempelajari cara validasi input dengan Joi' },
-                        status: { type: 'string', enum: ['todo', 'in_progress', 'done'], default: 'todo' },
-                        priority: { type: 'string', enum: ['low', 'medium', 'high'], default: 'medium' },
-                        dueDate: { type: 'string', format: 'date-time', example: '2024-12-31T00:00:00Z' },
+                        status:      { type: 'string', enum: ['todo', 'in_progress', 'done'], default: 'todo' },
+                        priority:    { type: 'string', enum: ['low', 'medium', 'high'], default: 'medium' },
+                        dueDate:     { type: 'string', format: 'date-time', example: '2024-12-31T00:00:00Z' },
                     },
                 },
                 Task: {
@@ -30,7 +31,7 @@ const options = {
                         {
                             type: 'object',
                             properties: {
-                                id: { type: 'integer', example: 1 },
+                                id:        { type: 'integer', example: 1 },
                                 createdAt: { type: 'string', format: 'date-time' },
                                 updatedAt: { type: 'string', format: 'date-time' },
                             },
@@ -43,14 +44,14 @@ const options = {
                         error: {
                             type: 'object',
                             properties: {
-                                code: { type: 'string', example: 'VALIDATION_ERROR' },
+                                code:    { type: 'string', example: 'VALIDATION_ERROR' },
                                 message: { type: 'string', example: 'Data yang dikirim tidak valid.' },
                                 details: {
                                     type: 'array',
                                     items: {
                                         type: 'object',
                                         properties: {
-                                            field: { type: 'string' },
+                                            field:   { type: 'string' },
                                             message: { type: 'string' },
                                         },
                                     },
@@ -61,10 +62,12 @@ const options = {
                 },
             },
         },
-        tags: [{ name: 'Tasks', description: 'Operasi CRUD untuk resource Task' }],
-        // swagger-jsdoc akan membaca JSDoc comment dari file-file ini
-        apis: ['./src/routes/*.js'],
+        tags: [
+            { name: 'Tasks', description: 'Operasi CRUD untuk resource Task' }
+        ],
     },
+    // swagger-jsdoc akan membaca JSDoc comment dari file-file ini
+    apis: ['./src/routes/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
