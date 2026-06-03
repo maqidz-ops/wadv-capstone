@@ -1,6 +1,8 @@
 const config = require('./config');
 const express = require('express');
 const routes = require('./routes');
+const tasksRoutes = require('./routes/tasks.routes');
+const setupSwagger = require('./docs/swagger');
 
 const app = express();
 
@@ -8,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logger
+// Logging middleware 
 app.use((req, res, next) => {
   const start = Date.now();
 
@@ -21,8 +23,13 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/', routes);
-app.use('/api', routes);
+app.use('/', routes); // /health
+app.use('/api', routes); // /api/info, /api/echo/:msg
+
+app.use('/api/v1/tasks', tasksRoutes); // /api/v1/tasks (CRUD)
+
+// Setup Swagger UI
+setupSwagger(app);
 
 // 404 handler
 app.use((req, res) => {
@@ -52,6 +59,7 @@ app.listen(config.port, () => {
   console.log(`${config.appName} v${config.version}`);
   console.log(`Environment: ${config.env}`);
   console.log(`Server: http://localhost:${config.port}`);
+  console.log(`Docs: http://localhost:${config.port}/api/docs`);
   console.log('='.repeat(50));
 });
 
