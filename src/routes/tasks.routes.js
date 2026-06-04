@@ -62,21 +62,9 @@ router.get('/', validate(listTasksSchema, 'query'), ctrl.listTasks);
  *         description: Data tidak valid
  */
 router.post('/', validate(createTaskSchema, 'body'), ctrl.createTask);
-
 router.get('/:id', ctrl.getTask);
-
-router.put(
-  '/:id',
-  validate(replaceTaskSchema, 'body'),
-  ctrl.replaceTask
-);
-
-router.patch(
-  '/:id',
-  validate(updateTaskSchema, 'body'),
-  ctrl.updateTask
-);
-
+router.put('/:id', validate(replaceTaskSchema, 'body'), ctrl.replaceTask);
+router.patch('/:id', validate(updateTaskSchema, 'body'), ctrl.updateTask);
 router.delete('/:id', ctrl.deleteTask);
 
 module.exports = router;
