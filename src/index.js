@@ -2,6 +2,8 @@ const config = require('./config');
 const express = require('express');
 const routes = require('./routes');
 const tasksRoutes = require('./routes/tasks.routes');
+const authRoutes = require('./routes/auth.routes');
+const authenticate = require('./middleware/authenticate');
 const setupSwagger = require('./docs/swagger');
 const usersRoutes = require('./routes/users.routes'); // Import routes untuk user tasks
 
@@ -29,8 +31,14 @@ app.use((req, res, next) => {
 app.use('/', routes); // /health
 app.use('/api', routes); // /api/info, /api/echo/:msg
 
-app.use('/api/v1/tasks', tasksRoutes); // /api/v1/tasks (CRUD)
-app.use('/api/v1/users', usersRoutes); // /api/v1/users/:userId/tasks (tasks by user)
+// --- Auth routes (tidak dilindungi) -----------------------
+app.use('/auth', authRoutes);
+
+// --- API Routes yang dilindungi ----------------------------
+// authenticate dijalankan sebelum semua route /api/v1/..
+app.use('/api/v1', authenticate);
+app.use('/api/v1/tasks', tasksRoutes);
+app.use('/api/v1/users', usersRoutes);
 
 // ─── Swagger UI ─────────────────────────────────────────────
 setupSwagger(app);
@@ -47,15 +55,26 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err.message);
+  // Error dengan statusCode dari authService
+  if (err.statusCode) {
+    return res.status(err.statusCode).json({
+      error: { code: err.code || 'AUTH_ERROR', message: err.message },
+    });
+  }
 
+  // Prisma P2002: email duplikat (sudah ada user dengan email tersebut)
+  if (err.code === 'P2002') {
+    return res.status(409).json({
+      error: { code: 'DUPLICATE_RESOURCE', message: 'Data sudah digunakan.' },
+    });
+  }
+
+  console.error('Unhandled error:', err);
   res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
       message:
-        config.env === 'development'
-          ? err.message
-          : 'Terjadi kesalahan di server.',
+        config.env === 'development' ? err.message : 'Terjadi kesalahan di server.',
     },
   });
 });
