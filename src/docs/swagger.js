@@ -67,7 +67,10 @@ const options = {
         ],
     },
     // swagger-jsdoc akan membaca JSDoc comment dari file-file ini
-    apis: ['./src/routes/*.js'],
+    apis: [
+        './src/routes/*.js',
+        './src/docs/*.js'
+    ],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

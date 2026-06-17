@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -42,6 +43,7 @@ model Task {
   categoryId  Int?
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags        TaskTag[]
 
   @@index([userId])
   @@index([status])
@@ -73,4 +75,20 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+}
+
+model Tag {
+  id    Int       @id @default(autoincrement())
+  name  String    @unique
+  color String    @default("#6B7280")
+  tasks TaskTag[] // Relasi ke tabel junction TaskTag
+}
+
+model TaskTag {
+  taskId Int
+  tagId  Int
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId]) // Composite Primary Key agar kombinasi ID unik
 }

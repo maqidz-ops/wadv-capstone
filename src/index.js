@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth.routes');
 const authenticate = require('./middleware/authenticate');
 const setupSwagger = require('./docs/swagger');
 const usersRoutes = require('./routes/users.routes'); // Import routes untuk user tasks
+const taskTagRoutes = require('./routes/taskTagRoutes');
 
 const app = express();
 
@@ -32,13 +33,23 @@ app.use('/', routes); // /health
 app.use('/api', routes); // /api/info, /api/echo/:msg
 
 // --- Auth routes (tidak dilindungi) -----------------------
-app.use('/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
+
+// Middleware untuk melindungi rute API v1 dengan autentikasi JWT
+app.use('/api/v1', (req, res, next) => {
+  // Jika request mengarah ke auth, langsung loloskan tanpa cek token
+  if (req.path.startsWith('/auth')) {
+    return next();
+  }
+  // Selain rute auth, wajib melewati validasi token
+  return authenticate(req, res, next);
+});
 
 // --- API Routes yang dilindungi ----------------------------
-// authenticate dijalankan sebelum semua route /api/v1/..
-app.use('/api/v1', authenticate);
 app.use('/api/v1/tasks', tasksRoutes);
 app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/task-tags', taskTagRoutes);
+
 
 // ─── Swagger UI ─────────────────────────────────────────────
 setupSwagger(app);

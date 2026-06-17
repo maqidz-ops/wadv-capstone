@@ -8,9 +8,8 @@ const {
 } = require('../controllers/healthController');
 
 router.get('/health', getHealth);
-
 router.get('/info', getInfo);
-
 router.get('/echo/:msg', echo);
+
 
 module.exports = router;
