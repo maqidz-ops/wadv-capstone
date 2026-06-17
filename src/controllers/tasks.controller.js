@@ -148,6 +148,39 @@ const getTasksByUser = async (req, res, next) => {
   }
 };
 
+const addTagToTask = async (req, res, next) => {
+  try {
+    const { taskId } = req.params;
+    const { tagId } = req.body; // tagId dikirim melalui JSON body
+
+    if (!tagId) {
+      return res.status(400).json({ status: 'fail', message: 'tagId harus disertakan di body' });
+    }
+
+    const taskTag = await taskRepository.addTag(taskId, tagId);
+    res.status(201).json({ status: 'success', data: taskTag });
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ status: 'fail', message: 'Tag ini sudah terpasang pada task tersebut' });
+    }
+    next(error);
+  }
+};
+
+const removeTagFromTask = async (req, res, next) => {
+  try {
+    const { taskId, tagId } = req.params; // Diambil langsung dari URL parameter
+
+    await taskRepository.removeTag(taskId, tagId);
+    res.status(200).json({ status: 'success', message: 'Tag berhasil dihapus dari task' });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ status: 'fail', message: 'Hubungan task dan tag tidak ditemukan' });
+    }
+    next(error);
+  }
+};
+
 module.exports = {
   listTasks,
   createTask,
@@ -156,4 +189,6 @@ module.exports = {
   updateTask,
   deleteTask,
   getTasksByUser,
+  addTagToTask,
+  removeTagFromTask,
 };

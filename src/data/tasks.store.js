@@ -1,5 +1,4 @@
 // Simulasi database menggunakan array in-memory
-
 let tasks = [
     { id: 1, title: 'Setup project',      status: 'done',        priority: 'high',   createdAt: new Date('2024-01-10').toISOString(), updatedAt: new Date('2024-01-10').toISOString() },
     { id: 2, title: 'Belajar Express',     status: 'in_progress', priority: 'high',   createdAt: new Date('2024-01-11').toISOString(), updatedAt: new Date('2024-01-11').toISOString() },
@@ -38,7 +37,7 @@ const store = {
         return tasks.find(t => t.id === Number(id)) || null;
     },
 
-    // Buat task baru
+    // Membuat task baru
     create(payload) {
         const now = new Date().toISOString();
         const task = { id: nextId++, ...payload, createdAt: now, updatedAt: now };

@@ -21,6 +21,16 @@ const userRepository = {
   async findByEmail(email) {
     return prisma.user.findUnique({ where: { email } });
   },
+
+  async create(data) {
+    return prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      },
+    });
+  },
 };
 
 module.exports = userRepository;

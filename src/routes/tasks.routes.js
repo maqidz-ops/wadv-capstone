@@ -1,5 +1,4 @@
 // File: src/routes/tasks.routes.js
-
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/tasks.controller');
@@ -66,5 +65,7 @@ router.get('/:id', ctrl.getTask);
 router.put('/:id', validate(replaceTaskSchema, 'body'), ctrl.replaceTask);
 router.patch('/:id', validate(updateTaskSchema, 'body'), ctrl.updateTask);
 router.delete('/:id', ctrl.deleteTask);
+router.post('/:taskId/tags', ctrl.addTagToTask);
+router.delete('/:taskId/tags/:tagId', ctrl.removeTagFromTask);
 
 module.exports = router;

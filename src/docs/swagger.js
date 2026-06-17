@@ -1,7 +1,7 @@
-// File: src/docs/swagger.js
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi    = require('swagger-ui-express');
 const config       = require('../config');
+const tagDocs = require('./tag.swagger.js');
 
 const options = {
     definition: {
@@ -67,7 +67,10 @@ const options = {
         ],
     },
     // swagger-jsdoc akan membaca JSDoc comment dari file-file ini
-    apis: ['./src/routes/*.js'],
+    apis: [
+        './src/routes/*.js',
+        './src/docs/*.js'
+    ],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
@@ -77,6 +80,11 @@ const swaggerSpec = swaggerJsdoc(options);
  * Dipanggil dari src/index.js
  */
 const setupSwagger = (app) => {
+    Object.assign(swaggerSpec.components.schemas, tagDocs.components.schemas);
+    Object.assign(swaggerSpec.paths, tagDocs.paths);
+    swaggerSpec.tags.push({ name: 'Tags', description: 'Operasi Resource Tag' });
+    swaggerSpec.tags.push({ name: 'Task Tags', description: 'Hubungan Many-to-Many Task & Tag' });
+
     // Sajikan Swagger UI di /api/docs
     app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
         customSiteTitle: `${config.appName} - API Docs`,
