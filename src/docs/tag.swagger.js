@@ -1,5 +1,3 @@
-// File: src/docs/tag.swagger.js
-
 const tagDocumentation = {
   components: {
     schemas: {
