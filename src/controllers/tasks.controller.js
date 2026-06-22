@@ -1,9 +1,10 @@
 const taskRepo = require('../repositories/task.repository');
 
-// ─── GET /api/v1/tasks ──────────────────────────────────
+// GET /api/v1/tasks
 const listTasks = async (req, res, next) => {
   try {
     const { status, priority, sort, order, limit, offset } = req.query;
+    const userId = req.user.role === 'ADMIN' ? undefined : req.user.userId;
     const { data, total } = await taskRepo.findMany({
       status,
       priority,
@@ -33,22 +34,17 @@ const listTasks = async (req, res, next) => {
   }
 };
 
-// ─── POST /api/v1/tasks ─────────────────────────────────
+// Post /api/v1/tasks
 const createTask = async (req, res, next) => {
   try {
-    const task = await taskRepo.create({
-      ...req.body,
-      userId: req.body.userId || 1,
-    });
-    res.status(201).set('Location', `/api/v1/tasks/${task.id}`).json({
-      data: task,
-    });
+    const task = await taskRepo.create({ ...req.body, userId: req.user.userId || 1,});
+    res.status(201).set('Location', `/api/v1/tasks/${task.id}`).json({ data: task, });
   } catch (err) {
     next(err);
   }
 };
 
-// ─── GET /api/v1/tasks/:id ──────────────────────────────
+// GET /api/v1/tasks/:id
 const getTask = async (req, res, next) => {
   try {
     const task = await taskRepo.findById(req.params.id);
@@ -66,7 +62,7 @@ const getTask = async (req, res, next) => {
   }
 };
 
-// ─── PATCH /api/v1/tasks/:id (Partial Update) ──────────
+// PATCH /api/v1/tasks/:id (Partial Update)
 const updateTask = async (req, res, next) => {
   try {
     const task = await taskRepo.update(req.params.id, req.body);
@@ -84,7 +80,7 @@ const updateTask = async (req, res, next) => {
   }
 };
 
-// ─── PUT /api/v1/tasks/:id (Full Replace) ──────────────
+// PUT /api/v1/tasks/:id (Full Replace)
 const replaceTask = async (req, res, next) => {
   try {
     const task = await taskRepo.replace(req.params.id, req.body);
@@ -102,7 +98,7 @@ const replaceTask = async (req, res, next) => {
   }
 };
 
-// ─── DELETE /api/v1/tasks/:id ───────────────────────────
+// DELETE /api/v1/tasks/:id
 const deleteTask = async (req, res, next) => {
   try {
     const ok = await taskRepo.remove(req.params.id);
@@ -120,7 +116,7 @@ const deleteTask = async (req, res, next) => {
   }
 };
 
-// ─── GET /api/v1/users/:userId/tasks ────────────────────
+// GET /api/v1/users/:userId/tasks
 const getTasksByUser = async (req, res, next) => {
   try {
     const result = await taskRepo.findByUser(req.params.userId);

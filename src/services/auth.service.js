@@ -84,7 +84,11 @@ const authService = {
     }
 
     // 4. Buat access token (short-lived)
-    const accessToken = signAccessToken({ userId: user.id, email: user.email });
+    const accessToken = signAccessToken({ 
+      userId: user.id, 
+      email: user.email,
+      role: user.role 
+    });
 
     // 5. Buat refresh token (long-lived)
     const refreshToken = signRefreshToken({ userId: user.id });

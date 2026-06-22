@@ -33,11 +33,12 @@ async function main() {
   // ------ Buat Users ------------------------------------------
   // CATATAN: password di-seed sebagai plain text.
   // Di aplikasi nyata, password WAJIB di-hash (Minggu 6: bcrypt/argon2).
-  const [budi, siti] = await Promise.all([
+  const [budi, siti, admin] = await Promise.all([
     prisma.user.create({ data: { name: 'Budi Santoso', email: 'budi@example.com', password: 'hashed_later' } }),
     prisma.user.create({ data: { name: 'Siti Rahayu', email: 'siti@example.com', password: 'hashed_later' } }),
+    prisma.user.create({ data: { name: 'Admin', email: 'admin@example.com', password: 'hashed_later', role: 'ADMIN' } }),
   ]);
-  console.log(' ✓ 2 user dibuat');
+  console.log(' ✓ 3 user dibuat');
 
   // ------ Buat Tasks ------------------------------------------
   await Promise.all([

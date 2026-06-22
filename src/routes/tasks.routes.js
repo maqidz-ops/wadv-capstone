@@ -1,8 +1,10 @@
-// File: src/routes/tasks.routes.js
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/tasks.controller');
 const validate = require('../middleware/validate');
+const authenticate = require('../middleware/authenticate');
+const authorize = require('../middleware/authorize');
+const { checkTaskOwnership } = require('../middleware/checkOwnership');
 
 const {
   createTaskSchema,
@@ -10,6 +12,8 @@ const {
   updateTaskSchema,
   listTasksSchema,
 } = require('../validators/task.validator');
+
+router.use(authenticate);
 
 /**
  * @swagger
@@ -60,11 +64,13 @@ router.get('/', validate(listTasksSchema, 'query'), ctrl.listTasks);
  *       400:
  *         description: Data tidak valid
  */
-router.post('/', validate(createTaskSchema, 'body'), ctrl.createTask);
-router.get('/:id', ctrl.getTask);
-router.put('/:id', validate(replaceTaskSchema, 'body'), ctrl.replaceTask);
-router.patch('/:id', validate(updateTaskSchema, 'body'), ctrl.updateTask);
-router.delete('/:id', ctrl.deleteTask);
+
+router.post('/', validate(createTaskSchema), authorize('USER', 'ADMIN'), ctrl.createTask);
+router.get('/:id', checkTaskOwnership, ctrl.getTask);
+router.put('/:id', checkTaskOwnership, validate(replaceTaskSchema, 'body'), ctrl.replaceTask);
+router.patch('/:id', checkTaskOwnership, validate(updateTaskSchema, 'body'), ctrl.updateTask);
+router.delete('/:id', checkTaskOwnership, ctrl.deleteTask);
+
 router.post('/:taskId/tags', ctrl.addTagToTask);
 router.delete('/:taskId/tags/:tagId', ctrl.removeTagFromTask);
 
