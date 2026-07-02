@@ -5,6 +5,7 @@ const validate = require('../middleware/validate');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const { checkTaskOwnership } = require('../middleware/checkOwnership');
+const { sanitizeBody } = require('../middleware/sanitize');
 
 const {
   createTaskSchema,
@@ -65,10 +66,10 @@ router.get('/', validate(listTasksSchema, 'query'), ctrl.listTasks);
  *         description: Data tidak valid
  */
 
-router.post('/', validate(createTaskSchema), authorize('USER', 'ADMIN'), ctrl.createTask);
+router.post('/', validate(createTaskSchema), sanitizeBody, authorize('USER', 'ADMIN'), ctrl.createTask);
 router.get('/:id', checkTaskOwnership, ctrl.getTask);
-router.put('/:id', checkTaskOwnership, validate(replaceTaskSchema, 'body'), ctrl.replaceTask);
-router.patch('/:id', checkTaskOwnership, validate(updateTaskSchema, 'body'), ctrl.updateTask);
+router.put('/:id', checkTaskOwnership, validate(replaceTaskSchema), sanitizeBody, ctrl.replaceTask);
+router.patch('/:id', checkTaskOwnership, validate(updateTaskSchema), sanitizeBody, ctrl.updateTask);
 router.delete('/:id', checkTaskOwnership, ctrl.deleteTask);
 
 router.post('/:taskId/tags', ctrl.addTagToTask);

@@ -37,8 +37,33 @@ const listTasks = async (req, res, next) => {
 // Post /api/v1/tasks
 const createTask = async (req, res, next) => {
   try {
-    const task = await taskRepo.create({ ...req.body, userId: req.user.userId || 1,});
-    res.status(201).set('Location', `/api/v1/tasks/${task.id}`).json({ data: task, });
+    const task = await taskRepo.create({
+      ...req.body,
+      userId: req.user.userId || 1,
+    });
+
+    const io = req.app.get('io');
+
+    if (io) {
+      io.to('tasks:global').emit('task:created', {
+        task,
+      });
+
+      io.to(`user:${req.user.userId}`).emit(
+        'notification',
+        {
+          type: 'SUCCESS',
+          title: 'Task Berhasil Dibuat',
+          message: `Task "${task.title}" telah ditambahkan.`,
+        }
+      );
+    }
+
+    res
+      .status(201)
+      .set('Location', `/api/v1/tasks/${task.id}`)
+      .json({ data: task });
+
   } catch (err) {
     next(err);
   }
@@ -65,7 +90,11 @@ const getTask = async (req, res, next) => {
 // PATCH /api/v1/tasks/:id (Partial Update)
 const updateTask = async (req, res, next) => {
   try {
-    const task = await taskRepo.update(req.params.id, req.body);
+    const task = await taskRepo.update(
+      req.params.id,
+      req.body
+    );
+
     if (!task) {
       return res.status(404).json({
         error: {
@@ -74,7 +103,22 @@ const updateTask = async (req, res, next) => {
         },
       });
     }
-    res.status(200).json({ data: task });
+
+    const io = req.app.get('io');
+
+    if (io) {
+      io.to('tasks:global').emit(
+        'task:updated',
+        {
+          task,
+        }
+      );
+    }
+
+    res.status(200).json({
+      data: task,
+    });
+
   } catch (err) {
     next(err);
   }
@@ -101,7 +145,10 @@ const replaceTask = async (req, res, next) => {
 // DELETE /api/v1/tasks/:id
 const deleteTask = async (req, res, next) => {
   try {
-    const ok = await taskRepo.remove(req.params.id);
+    const taskId = parseInt(req.params.id);
+
+    const ok = await taskRepo.remove(taskId);
+
     if (!ok) {
       return res.status(404).json({
         error: {
@@ -110,7 +157,20 @@ const deleteTask = async (req, res, next) => {
         },
       });
     }
+
+    const io = req.app.get('io');
+
+    if (io) {
+      io.to('tasks:global').emit(
+        'task:deleted',
+        {
+          taskId,
+        }
+      );
+    }
+
     res.status(204).send();
+
   } catch (err) {
     next(err);
   }

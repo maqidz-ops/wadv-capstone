@@ -1,7 +1,7 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi    = require('swagger-ui-express');
 const config       = require('../config');
-const tagDocs = require('./tag.swagger.js');
+const tagDocs      = require('./tag.swagger.js');
 
 const options = {
     definition: {
