@@ -65,44 +65,29 @@ app.use(express.urlencoded({
   limit: '10kb',
 }));
 
-// Rate limiting middleware
+// ─── 4. Rate Limiting Global ───────────────────────────────────────────────
 app.use('/api/', apiLimiter);
 
-// Request logging middleware
+// ─── 5. Request Logger ─────────────────────────────────────────────────────
 app.use((req, res, next) => {
   const start = Date.now();
-
   res.on('finish', () => {
     const duration = Date.now() - start;
-
-    console.log(
-      `${req.method} ${req.path} → ${res.statusCode} (${duration}ms)`
-    );
+    console.log(`${req.method} ${req.path} → ${res.statusCode} (${duration}ms)`);
   });
-
   next();
 });
 
-// Public routes
+// ─── 6. Routes ─────────────────────────────────────────────────────────────
 app.use('/', routes);
 app.use('/api', routes);
 
-// Authentication routes with rate limiting
+// Auth routes - rate limiting ketat
 app.use('/auth/login', authLimiter);
 app.use('/auth/refresh', sensitiveLimiter);
 app.use('/auth', authRoutes);
 
-// JWT authentication middleware
-app.use('/api/v1', (req, res, next) => {
-  // jika route auth, skip authentication
-  if (req.path.startsWith('/auth')) {
-    return next();
-  }
-
-  return authenticate(req, res, next);
-});
-
-// Protected routes
+// Protected API routes
 app.use('/api/v1/tasks', tasksRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/admin', adminRoutes);

@@ -13,6 +13,14 @@ const options = {
         },
         servers: [{ url: `http://localhost:${config.port}/api/v1`, description: 'Local Dev' }],
         components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Masukkan JWT access token'
+                }
+            },
             schemas: {
                 CreateTask: {
                     type: 'object',

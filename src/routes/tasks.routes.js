@@ -66,10 +66,16 @@ router.get('/', validate(listTasksSchema, 'query'), ctrl.listTasks);
  *         description: Data tidak valid
  */
 
-router.post('/', validate(createTaskSchema), sanitizeBody, authorize('USER', 'ADMIN'), ctrl.createTask);
+// POST /api/v1/tasks — USER dan ADMIN bisa buat task
+router.post('/', validate(createTaskSchema, 'body'), authorize('USER', 'ADMIN'), ctrl.createTask);
+
+// GET /api/v1/tasks/:id — User bisa lihat task sendiri, admin lihat semua
 router.get('/:id', checkTaskOwnership, ctrl.getTask);
-router.put('/:id', checkTaskOwnership, validate(replaceTaskSchema), sanitizeBody, ctrl.replaceTask);
-router.patch('/:id', checkTaskOwnership, validate(updateTaskSchema), sanitizeBody, ctrl.updateTask);
+
+// PATCH /api/v1/tasks/:id — Hanya pemilik atau admin yang bisa mengubah data (Ditambahkan sanitizeBody setelah validasi)
+router.patch('/:id', checkTaskOwnership, validate(updateTaskSchema, 'body'), sanitizeBody, ctrl.updateTask);
+
+// DELETE /api/v1/tasks/:id — Hanya pemilik atau admin yang bisa menghapus data
 router.delete('/:id', checkTaskOwnership, ctrl.deleteTask);
 
 router.post('/:taskId/tags', ctrl.addTagToTask);
