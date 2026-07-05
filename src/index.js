@@ -1,104 +1,166 @@
 const config = require('./config');
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const helmet = require('helmet');
+const cors = require('cors');
+
+const corsOptions = require('./config/cors');
+const {
+  apiLimiter,
+  authLimiter,
+  sensitiveLimiter,
+} = require('./config/rateLimiter');
+
+// Routes
 const routes = require('./routes');
 const tasksRoutes = require('./routes/tasks.routes');
 const authRoutes = require('./routes/auth.routes');
+const usersRoutes = require('./routes/users.routes');
+const adminRoutes = require('./routes/admin.routes');
+const taskTagRoutes = require('./routes/taskTagRoutes');
+
 const authenticate = require('./middleware/authenticate');
 const setupSwagger = require('./docs/swagger');
-const usersRoutes = require('./routes/users.routes'); // Import routes untuk user tasks
-const taskTagRoutes = require('./routes/taskTagRoutes');
 
 const app = express();
 
-// ─── Middleware Global ──────────────────────────────────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// HTTP server
+const server = http.createServer(app);
 
-// Logging middleware
+// Socket.IO server
+const io = new Server(server, {
+  cors: {
+    origin: config.allowedOrigins || '*',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+});
+
+// supaya bisa dipanggil dari controller
+app.set('io', io);
+
+// Socket.IO event handlers
+require('./socket')(io);
+
+// Security middleware
+app.use(helmet());
+
+app.use(cors(corsOptions));
+
+/*
+ * EXPRESS 5 FIX
+ * Jangan gunakan:
+ * app.options('*', cors(corsOptions))
+ */
+app.options(/.*/, cors(corsOptions));
+
+// Body parser middleware
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10kb',
+}));
+
+// ─── 4. Rate Limiting Global ───────────────────────────────────────────────
+app.use('/api/', apiLimiter);
+
+// ─── 5. Request Logger ─────────────────────────────────────────────────────
 app.use((req, res, next) => {
   const start = Date.now();
-
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(
-      `${req.method} ${req.path} → ${res.statusCode} (${duration}ms)`
-    );
+    console.log(`${req.method} ${req.path} → ${res.statusCode} (${duration}ms)`);
   });
-
   next();
 });
 
-// ─── Routes ─────────────────────────────────────────────────
-app.use('/', routes); // /health
-app.use('/api', routes); // /api/info, /api/echo/:msg
+// ─── 6. Routes ─────────────────────────────────────────────────────────────
+app.use('/', routes);
+app.use('/api', routes);
 
-// --- Auth routes (tidak dilindungi) -----------------------
-app.use('/api/v1/auth', authRoutes);
+// Auth routes - rate limiting ketat
+app.use('/auth/login', authLimiter);
+app.use('/auth/refresh', sensitiveLimiter);
+app.use('/auth', authRoutes);
 
-// Middleware untuk melindungi rute API v1 dengan autentikasi JWT
-app.use('/api/v1', (req, res, next) => {
-  // Jika request mengarah ke auth, langsung loloskan tanpa cek token
-  if (req.path.startsWith('/auth')) {
-    return next();
-  }
-  // Selain rute auth, wajib melewati validasi token
-  return authenticate(req, res, next);
-});
-
-// --- API Routes yang dilindungi ----------------------------
+// Protected API routes
 app.use('/api/v1/tasks', tasksRoutes);
 app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/task-tags', taskTagRoutes);
 
-
-// ─── Swagger UI ─────────────────────────────────────────────
+// Swagger documentation setup
 setupSwagger(app);
 
-// ─── 404 & Error Handlers ───────────────────────────────────
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: {
       code: 'NOT_FOUND',
       message: `Route ${req.method} ${req.path} tidak ditemukan.`,
-      hint: 'Kunjungi GET /api/docs untuk dokumentasi API.',
     },
   });
 });
 
+// Error handling middleware
 app.use((err, req, res, next) => {
-  // Error dengan statusCode dari authService
-  if (err.statusCode) {
-    return res.status(err.statusCode).json({
-      error: { code: err.code || 'AUTH_ERROR', message: err.message },
+  if (
+    err.message &&
+    err.message.includes('tidak diizinkan oleh CORS')
+  ) {
+    return res.status(403).json({
+      error: {
+        code: 'CORS_ERROR',
+        message: err.message,
+      },
     });
   }
 
-  // Prisma P2002: email duplikat (sudah ada user dengan email tersebut)
+  if (err.statusCode) {
+    return res.status(err.statusCode).json({
+      error: {
+        code: err.code || 'AUTH_ERROR',
+        message: err.message,
+      },
+    });
+  }
+
   if (err.code === 'P2002') {
     return res.status(409).json({
-      error: { code: 'DUPLICATE_RESOURCE', message: 'Data sudah digunakan.' },
+      error: {
+        code: 'DUPLICATE_RESOURCE',
+        message: 'Data sudah digunakan.',
+      },
     });
   }
 
   console.error('Unhandled error:', err);
+
   res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
       message:
-        config.env === 'development' ? err.message : 'Terjadi kesalahan di server.',
+        config.env === 'development'
+          ? err.message
+          : 'Terjadi kesalahan.',
     },
   });
 });
 
-// ─── Start Server ───────────────────────────────────────────
-app.listen(config.port, () => {
-  console.log('─'.repeat(50));
+// Start the server
+server.listen(config.port, () => {
+  console.log('─'.repeat(55));
   console.log(` ${config.appName} v${config.version}`);
   console.log(` Environment : ${config.env}`);
-  console.log(` Database : MySQL via XAMPP`);
-  console.log(` Server : http://localhost:${config.port}`);
-  console.log(` Docs : http://localhost:${config.port}/api/docs`);
-  console.log('─'.repeat(50));
+  console.log(` Server      : http://localhost:${config.port}`);
+  console.log(` Docs        : http://localhost:${config.port}/api/docs`);
+  console.log(` Socket.IO   : READY`);
+  console.log(` Security    : Helmet ✓  CORS ✓  Rate Limit ✓`);
+  console.log('─'.repeat(55));
 });
 
 module.exports = app;

@@ -48,8 +48,32 @@ router.post('/register', validate(registerSchema), ctrl.register);
  *   post:
  *     summary: Login dan dapatkan token
  *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: budi@example.com
+ *               password:
+ *                 type: string
+ *                 example: P@ssw0rd!
+ *     responses:
+ *       200:
+ *         description: Login berhasil
+ *       401:
+ *         description: Email atau password salah
  */
-router.post('/login', validate(loginSchema), ctrl.login);
+router.post('/login',
+    validate(loginSchema),
+    ctrl.login
+);
 
 router.post('/refresh', validate(refreshSchema), ctrl.refresh);
 router.post('/logout', ctrl.logout);
