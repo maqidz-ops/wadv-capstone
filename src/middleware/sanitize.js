@@ -4,6 +4,9 @@ function sanitizeValue(val) {
   if (typeof val === 'string') {
     return xss(val);
   }
+  if (val instanceof Date) {
+    return val;
+  }
   if (Array.isArray(val)) {
     return val.map(item => sanitizeValue(item));
   }

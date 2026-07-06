@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client');
-const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
 
 // Membuat instance PrismaClient tunggal (Singleton) tanpa driver adapter khusus
 const prisma = new PrismaClient({
