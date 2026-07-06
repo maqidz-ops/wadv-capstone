@@ -1,17 +1,8 @@
 // File: prisma/seed.js
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
-const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
-
-const { hostname, port, username, password, pathname } = new URL(process.env.DATABASE_URL);
-const adapter = new PrismaMariaDb({
-  host:       hostname,
-  port:       parseInt(port) || 3306,
-  user:       username,
-  password:   password || undefined,
-  database:   pathname.slice(1),
-});
-const prisma = new PrismaClient({ adapter });
+const argon2 = require('argon2');
+const prisma = new PrismaClient();
 
 async function main() {
   console.log('Mulai seeding database MySQL...');
@@ -31,12 +22,14 @@ async function main() {
   console.log(' ✓ 3 kategori dibuat');
 
   // ------ Buat Users ------------------------------------------
-  // CATATAN: password di-seed sebagai plain text.
-  // Di aplikasi nyata, password WAJIB di-hash (Minggu 6: bcrypt/argon2).
+  // Hash password dengan Argon2
+  const hashedUserPassword = await argon2.hash('password123');
+  const hashedAdminPassword = await argon2.hash('admin123');
+
   const [budi, siti, admin] = await Promise.all([
-    prisma.user.create({ data: { name: 'Budi Santoso', email: 'budi@example.com', password: 'hashed_later' } }),
-    prisma.user.create({ data: { name: 'Siti Rahayu', email: 'siti@example.com', password: 'hashed_later' } }),
-    prisma.user.create({ data: { name: 'Admin', email: 'admin@example.com', password: 'hashed_later', role: 'ADMIN' } }),
+    prisma.user.create({ data: { name: 'Budi Santoso', email: 'budi@example.com', password: hashedUserPassword } }),
+    prisma.user.create({ data: { name: 'Siti Rahayu', email: 'siti@example.com', password: hashedUserPassword } }),
+    prisma.user.create({ data: { name: 'Admin', email: 'admin@example.com', password: hashedAdminPassword, role: 'ADMIN' } }),
   ]);
   console.log(' ✓ 3 user dibuat');
 
