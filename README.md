@@ -1,79 +1,142 @@
-# WADV-CAPSTONE API
+# WADV Capstone API
 
-REST API untuk proyek Capstone *Web Advanced Development*. Aplikasi ini dibangun menggunakan Node.js, Express, Prisma ORM, dan dilengkapi dengan dokumentasi interaktif Swagger UI.
+REST API untuk proyek Capstone Web Advanced Development yang dirancang untuk mengelola tugas, kategori, tag, autentikasi pengguna, serta fitur keamanan dan dokumentasi API secara terintegrasi.
 
----
+## Overview
 
-## 🚀 Cara Setup & Instalasi
+Aplikasi ini dibangun menggunakan arsitektur backend modular dengan Node.js dan Express, didukung oleh Prisma ORM untuk akses database MySQL, serta dilengkapi dengan dokumentasi Swagger, rate limiting, autentikasi JWT, dan dukungan real-time melalui Socket.IO.
 
-Ikuti langkah-langkah berikut untuk menjalankan aplikasi di lingkungan lokal Anda:
+## Fitur Utama
 
-### 1. Prasyarat
-Pastikan Anda sudah menginstal aplikasi berikut di komputer Anda:
-* **Node.js** (Versi 18 atau yang lebih baru disarankan)
-* **XAMPP / MySQL Server**
+- Autentikasi pengguna dengan JWT dan refresh token
+- Manajemen tugas (CRUD) beserta status, prioritas, dan tenggat waktu
+- Pengelolaan kategori dan tag untuk pengorganisasian tugas
+- Relasi tugas dengan tag melalui model many-to-many
+- Keamanan tambahan melalui Helmet, CORS, dan rate limiter
+- Dokumentasi API interaktif dengan Swagger UI
+- Dukungan real-time melalui Socket.IO
 
-### 2. Kloning Proyek & Instal Dependensi
-Buka terminal, masuk ke folder proyek, lalu jalankan perintah berikut untuk menginstal semua *library* yang dibutuhkan:
+## Tech Stack
+
+- Node.js 18+
+- Express.js
+- Prisma ORM
+- MySQL
+- JWT (jsonwebtoken)
+- Socket.IO
+- Swagger UI / Swagger JSDoc
+- Helmet, CORS, express-rate-limit
+- Joi untuk validasi input
+- Argon2 untuk hashing password
+
+## Struktur Proyek
+
+- src/controllers: logic handler untuk endpoint API
+- src/routes: definisi routing
+- src/services: business logic aplikasi
+- src/repositories: akses data dan query
+- src/middleware: autentikasi, otorisasi, validasi, sanitasi
+- src/docs: konfigurasi Swagger
+- prisma: schema, migration, dan seeding database
+
+## Prasyarat
+
+Pastikan perangkat Anda sudah memiliki:
+
+- Node.js v18 atau yang lebih baru
+- MySQL Server atau XAMPP dengan MySQL aktif
+- npm atau pnpm
+
+## Instalasi
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd WADV-CAPSTONE
+```
+
+### 2. Install Dependensi
+
 ```bash
 npm install
+```
 
-### 3. Konfigurasi Environment (.env)
-Buat file bernama .env di root folder proyek Anda (atau salin dari .env.example). Sesuaikan baris koneksi database dengan MySQL lokal Anda:
+### 3. Konfigurasi Environment
 
+Buat file .env di root proyek dan sesuaikan konfigurasi berikut:
+
+```env
 DATABASE_URL="mysql://root:@localhost:3306/wadv_capstone"
 PORT=3000
 NODE_ENV=development
+```
 
-### 4. Sinkronisasi Database (Prisma Migration & Seed)
-Jalankan rangkaian perintah berikut secara berurutan untuk membuat struktur tabel dan memasukkan data awal (seed):
-# 1. Sinkronisasi skema prisma ke database MySQL
+> Sesuaikan nilai DATABASE_URL sesuai username, password, host, dan nama database MySQL Anda.
+
+### 4. Migrasi dan Seed Database
+
+```bash
 npx prisma migrate dev --name init
-
-# 2. Masukkan data dummy awal ke dalam database
 npx prisma db seed
+```
 
-### 5. Menjalankan Aplikasi
-Gunakan perintah berikut untuk menyalakan server menggunakan nodemon (otomatis memuat ulang jika ada perubahan kode):
+### 5. Jalankan Aplikasi
+
+Untuk mode development:
+
+```bash
 npm run dev
-Setelah berjalan, server dapat diakses di http://localhost:3000.
+```
 
-📖 Dokumentasi API (Swagger UI)
-Aplikasi ini telah dilengkapi dengan Swagger UI untuk mempermudah pengujian endpoint. Anda dapat mengakses dokumentasi interaktif melalui browser pada alamat berikut:
+Server akan berjalan pada:
 
-Swagger UI Docs: http://localhost:3000/api/docs
+- http://localhost:3000
+- Swagger UI: http://localhost:3000/api/docs
+- Raw JSON Spec: http://localhost:3000/api/docs.json
 
-Raw JSON Spec: http://localhost:3000/api/docs.json
+## Scripts yang Tersedia
 
-🛠️ Daftar Endpoint API
-Berikut adalah rangkuman endpoint yang tersedia di dalam sistem:
+```bash
+npm run dev      # menjalankan server dengan nodemon
+npm start        # menjalankan server dalam mode produksi
+npm run db:seed  # menjalankan seeder database
+```
 
-1. Autentikasi (Auth)
-POST /api/v1/auth/register - Registrasi pengguna baru.
+## Endpoint Utama
 
-POST /api/v1/auth/login - Login pengguna untuk mendapatkan access token.
+### Autentikasi
 
-2. Manajemen Tugas (Tasks)
-GET /api/v1/tasks - Mengambil daftar seluruh task (mendukung pagination, filtering, dan sorting).
+- POST /api/v1/auth/register
+- POST /api/v1/auth/login
 
-POST /api/v1/tasks - Membuat task baru.
+### Tugas
 
-GET /api/v1/tasks/{id} - Mendapatkan detail satu task berdasarkan ID.
+- GET /api/v1/tasks
+- POST /api/v1/tasks
+- GET /api/v1/tasks/:id
+- PUT /api/v1/tasks/:id
+- DELETE /api/v1/tasks/:id
 
-PUT /api/v1/tasks/{id} - Memperbarui data task.
+### Kategori dan Tag
 
-DELETE /api/v1/tasks/{id} - Menghapus task.
+- GET /api/v1/tags
+- POST /api/v1/tags
+- POST /api/v1/task-tags/:taskId/tags
+- DELETE /api/v1/task-tags/:taskId/tags/:tagId
 
-3. Manajemen Label (Tags)
-GET /api/v1/tags - Mengambil daftar semua tag yang tersedia.
+## Dokumentasi API
 
-POST /api/v1/tags - Membuat data tag/label baru (nama & kode warna).
+Dokumentasi interaktif tersedia melalui Swagger UI. Anda dapat mengaksesnya langsung melalui browser setelah server berjalan.
 
-4. Relasi Tugas & Label (Task Tags)
-POST /api/v1/task-tags/{taskId}/tags - Menghubungkan sebuah label/tag ke tugas tertentu (Many-to-Many).
+## Alat Pendukung
 
-DELETE /api/v1/task-tags/{taskId}/tags/{tagId} - Melepas hubungan tag dari tugas terkait.
+Untuk melihat dan mengelola data database secara visual, jalankan:
 
-Alat Tambahan: Prisma Studio
-Untuk melihat, mengedit, dan mengelola isi data tabel secara visual melalui antarmuka browser, Anda dapat menjalankan perintah berikut:
+```bash
 npx prisma studio
+```
+
+## Catatan
+
+Pastikan MySQL server sudah aktif sebelum menjalankan migrasi. Jika terjadi error terkait koneksi database, cek kembali nilai DATABASE_URL pada file .env.
