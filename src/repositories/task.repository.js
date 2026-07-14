@@ -1,5 +1,17 @@
 const prisma = require('../config/prisma');
 
+const tagInclude = {
+  include: {
+    tag: { select: { name: true } },
+  },
+};
+
+const defaultInclude = {
+  user: { select: { id: true, name: true, email: true } },
+  category: { select: { id: true, name: true, color: true } },
+  tags: tagInclude,
+};
+
 const taskRepository = {
   // ─── List tasks dengan filter, sort, pagination ────────
   async findMany({
@@ -13,7 +25,6 @@ const taskRepository = {
   } = {}) {
     const where = {};
     if (userId) where.userId = Number(userId);
-    // MySQL enum di Prisma: nilai uppercase (TODO, IN_PROGRESS, DONE)
     if (status) where.status = status.toUpperCase().replace('-', '_');
     if (priority) where.priority = priority.toUpperCase();
 
@@ -23,10 +34,7 @@ const taskRepository = {
         orderBy: { [sort]: order },
         take: Number(limit),
         skip: Number(offset),
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-          category: { select: { id: true, name: true, color: true } },
-        },
+        include: defaultInclude,
       }),
       prisma.task.count({ where }),
     ]);
@@ -38,10 +46,7 @@ const taskRepository = {
   async findById(id) {
     return prisma.task.findUnique({
       where: { id: Number(id) },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        category: { select: { id: true, name: true, color: true } },
-      },
+      include: defaultInclude,
     });
   },
 
@@ -57,10 +62,7 @@ const taskRepository = {
         userId: Number(data.userId),
         categoryId: data.categoryId ? Number(data.categoryId) : null,
       },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        category: { select: { id: true, name: true, color: true } },
-      },
+      include: defaultInclude,
     });
   },
 
@@ -75,13 +77,10 @@ const taskRepository = {
           priority: data.priority ? data.priority.toUpperCase() : undefined,
           dueDate: data.dueDate === null ? null : data.dueDate ? new Date(data.dueDate) : undefined,
         },
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-          category: { select: { id: true, name: true, color: true } },
-        },
+        include: defaultInclude,
       });
     } catch (e) {
-      if (e.code === 'P2025') return null; // Record tidak ditemukan
+      if (e.code === 'P2025') return null;
       throw e;
     }
   },
@@ -103,10 +102,7 @@ const taskRepository = {
               ? null
               : new Date(data.dueDate),
         },
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-          category: { select: { id: true, name: true, color: true } },
-        },
+        include: defaultInclude,
       });
     } catch (e) {
       if (e.code === 'P2025') return null;
@@ -131,7 +127,10 @@ const taskRepository = {
       where: { id: Number(userId) },
       include: {
         tasks: {
-          include: { category: { select: { id: true, name: true, color: true } } },
+          include: {
+            category: { select: { id: true, name: true, color: true } },
+            tags: tagInclude,
+          },
           orderBy: { createdAt: 'desc' },
         },
       },

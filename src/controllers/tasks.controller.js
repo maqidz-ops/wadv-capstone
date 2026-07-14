@@ -1,4 +1,21 @@
 const taskRepo = require('../repositories/task.repository');
+const taskTagService = require('../services/taskTagService');
+
+function flattenTags(task) {
+  if (!task) return task;
+  return {
+    ...task,
+    tags: task.tags ? task.tags.map((t) => t.tag.name) : [],
+  };
+}
+
+function emitTagUpdated(io, taskId, task) {
+  if (!io) return;
+  io.to('tasks:global').emit('tag:updated', {
+    taskId,
+    tags: task.tags ? task.tags.map((t) => t.tag.name) : [],
+  });
+}
 
 // GET /api/v1/tasks
 const listTasks = async (req, res, next) => {
@@ -18,7 +35,7 @@ const listTasks = async (req, res, next) => {
     const numOffset = Number(offset) || 0;
 
     res.status(200).json({
-      data,
+      data: data.map(flattenTags),
       pagination: {
         total,
         limit: numLimit,
@@ -34,36 +51,38 @@ const listTasks = async (req, res, next) => {
   }
 };
 
-// Post /api/v1/tasks
+// POST /api/v1/tasks
 const createTask = async (req, res, next) => {
   try {
+    const { tags, ...taskData } = req.body;
+
     const task = await taskRepo.create({
-      ...req.body,
+      ...taskData,
       userId: req.user.userId || 1,
     });
+
+    if (tags && Array.isArray(tags)) {
+      await taskTagService.syncTagsByName(Number(task.id), tags);
+    }
+
+    const createdWithTags = await taskRepo.findById(task.id);
 
     const io = req.app.get('io');
 
     if (io) {
-      io.to('tasks:global').emit('task:created', {
-        task,
-      });
+      io.to('tasks:global').emit('task:created', { task: flattenTags(createdWithTags) });
 
-      io.to(`user:${req.user.userId}`).emit(
-        'notification',
-        {
-          type: 'SUCCESS',
-          title: 'Task Berhasil Dibuat',
-          message: `Task "${task.title}" telah ditambahkan.`,
-        }
-      );
+      io.to(`user:${req.user.userId}`).emit('notification', {
+        type: 'SUCCESS',
+        title: 'Task Berhasil Dibuat',
+        message: `Task "${task.title}" telah ditambahkan.`,
+      });
     }
 
     res
       .status(201)
       .set('Location', `/api/v1/tasks/${task.id}`)
-      .json({ data: task });
-
+      .json({ data: flattenTags(createdWithTags) });
   } catch (err) {
     next(err);
   }
@@ -81,7 +100,7 @@ const getTask = async (req, res, next) => {
         },
       });
     }
-    res.status(200).json({ data: task });
+    res.status(200).json({ data: flattenTags(task) });
   } catch (err) {
     next(err);
   }
@@ -90,10 +109,9 @@ const getTask = async (req, res, next) => {
 // PATCH /api/v1/tasks/:id (Partial Update)
 const updateTask = async (req, res, next) => {
   try {
-    const task = await taskRepo.update(
-      req.params.id,
-      req.body
-    );
+    const { tags, ...taskData } = req.body;
+
+    const task = await taskRepo.update(req.params.id, taskData);
 
     if (!task) {
       return res.status(404).json({
@@ -104,21 +122,23 @@ const updateTask = async (req, res, next) => {
       });
     }
 
+    if (tags !== undefined) {
+      await taskTagService.syncTagsByName(Number(req.params.id), tags);
+    }
+
+    const updated = await taskRepo.findById(req.params.id);
+
     const io = req.app.get('io');
 
     if (io) {
-      io.to('tasks:global').emit(
-        'task:updated',
-        {
-          task,
-        }
-      );
+      io.to('tasks:global').emit('task:updated', { task: flattenTags(updated) });
+
+      if (tags !== undefined) {
+        emitTagUpdated(io, req.params.id, updated);
+      }
     }
 
-    res.status(200).json({
-      data: task,
-    });
-
+    res.status(200).json({ data: flattenTags(updated) });
   } catch (err) {
     next(err);
   }
@@ -136,7 +156,7 @@ const replaceTask = async (req, res, next) => {
         },
       });
     }
-    res.status(200).json({ data: task });
+    res.status(200).json({ data: flattenTags(task) });
   } catch (err) {
     next(err);
   }
@@ -161,16 +181,10 @@ const deleteTask = async (req, res, next) => {
     const io = req.app.get('io');
 
     if (io) {
-      io.to('tasks:global').emit(
-        'task:deleted',
-        {
-          taskId,
-        }
-      );
+      io.to('tasks:global').emit('task:deleted', { taskId });
     }
 
     res.status(204).send();
-
   } catch (err) {
     next(err);
   }
@@ -195,7 +209,7 @@ const getTasksByUser = async (req, res, next) => {
           name: result.name,
           email: result.email,
         },
-        tasks: result.tasks,
+        tasks: result.tasks.map(flattenTags),
         total: result.tasks.length,
       },
     });
@@ -204,34 +218,70 @@ const getTasksByUser = async (req, res, next) => {
   }
 };
 
+// POST /api/v1/tasks/:taskId/tags
 const addTagToTask = async (req, res, next) => {
   try {
     const { taskId } = req.params;
-    const { tagId } = req.body; // tagId dikirim melalui JSON body
+    const { name } = req.body;
 
-    if (!tagId) {
-      return res.status(400).json({ status: 'fail', message: 'tagId harus disertakan di body' });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Field "name" (string) wajib disertakan di body.',
+      });
     }
 
-    const taskTag = await taskRepository.addTag(taskId, tagId);
-    res.status(201).json({ status: 'success', data: taskTag });
+    await taskTagService.addTagByName(Number(taskId), name.trim());
+
+    const updated = await taskRepo.findById(Number(taskId));
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('tasks:global').emit('task:updated', { task: flattenTags(updated) });
+      emitTagUpdated(io, taskId, updated);
+    }
+
+    res.status(200).json({ status: 'success', data: flattenTags(updated) });
   } catch (error) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ status: 'fail', message: 'Tag ini sudah terpasang pada task tersebut' });
+      return res.status(409).json({
+        status: 'fail',
+        message: 'Tag tersebut sudah terpasang pada task ini.',
+      });
     }
     next(error);
   }
 };
 
+// DELETE /api/v1/tasks/:taskId/tags/:tagName
 const removeTagFromTask = async (req, res, next) => {
   try {
-    const { taskId, tagId } = req.params; // Diambil langsung dari URL parameter
+    const { taskId, tagName } = req.params;
 
-    await taskRepository.removeTag(taskId, tagId);
-    res.status(200).json({ status: 'success', message: 'Tag berhasil dihapus dari task' });
+    const result = await taskTagService.removeTagByName(Number(taskId), tagName);
+
+    if (!result) {
+      return res.status(404).json({
+        status: 'fail',
+        message: `Tag "${tagName}" tidak ditemukan pada task ini.`,
+      });
+    }
+
+    const updated = await taskRepo.findById(Number(taskId));
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('tasks:global').emit('task:updated', { task: flattenTags(updated) });
+      emitTagUpdated(io, taskId, updated);
+    }
+
+    res.status(200).json({ status: 'success', data: flattenTags(updated) });
   } catch (error) {
     if (error.code === 'P2025') {
-      return res.status(404).json({ status: 'fail', message: 'Hubungan task dan tag tidak ditemukan' });
+      return res.status(404).json({
+        status: 'fail',
+        message: 'Hubungan task dan tag tidak ditemukan.',
+      });
     }
     next(error);
   }

@@ -19,6 +19,7 @@ const tasksRoutes = require('./routes/tasks.routes');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const adminRoutes = require('./routes/admin.routes');
+const tagRoutes = require('./routes/tagRoutes');
 const taskTagRoutes = require('./routes/taskTagRoutes');
 
 const authenticate = require('./middleware/authenticate');
@@ -91,6 +92,7 @@ app.use('/auth', authRoutes);
 app.use('/api/v1/tasks', tasksRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/task-tags', tagRoutes);
 app.use('/api/v1/task-tags', taskTagRoutes);
 
 // Swagger documentation setup
