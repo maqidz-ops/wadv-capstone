@@ -23,6 +23,7 @@ const createTaskSchema = Joi.object({
         .messages({ 'any.only': `priority harus salah satu dari: ${VALID_PRIORITY.join(', ')}.` }),
     dueDate: Joi.date().iso().min('now').optional().allow('', null)
         .messages({ 'date.min': 'dueDate tidak boleh di masa lalu.' }),
+    tags: Joi.array().items(Joi.string().trim().min(1)).optional(),
 });
 
 // Schema untuk FULL UPDATE (PUT /tasks/:id) – semua field wajib
@@ -41,6 +42,7 @@ const updateTaskSchema = Joi.object({
     status: Joi.string().valid(...VALID_STATUS),
     priority: Joi.string().valid(...VALID_PRIORITY),
     dueDate: Joi.date().iso().allow('', null),
+    tags: Joi.array().items(Joi.string().trim().min(1)).optional(),
 }).min(1).messages({ 'object.min': 'Minimal satu field harus diisi untuk update.' });
 
 // Schema untuk QUERY PARAMS di GET /tasks

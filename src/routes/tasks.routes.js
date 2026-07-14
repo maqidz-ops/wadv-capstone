@@ -79,6 +79,6 @@ router.patch('/:id', checkTaskOwnership, validate(updateTaskSchema, 'body'), san
 router.delete('/:id', checkTaskOwnership, ctrl.deleteTask);
 
 router.post('/:taskId/tags', ctrl.addTagToTask);
-router.delete('/:taskId/tags/:tagId', ctrl.removeTagFromTask);
+router.delete('/:taskId/tags/:tagName', ctrl.removeTagFromTask);
 
 module.exports = router;
